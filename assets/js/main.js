@@ -67,6 +67,11 @@
       var includes = (p.includes || []).map(function (i) {
         return '<li>' + escapeHtml(i) + '</li>';
       }).join("");
+      var quoteOnly = /custom quote/i.test(p.price || "");
+      var cta = quoteOnly ? "Request a custom quote" : "Choose " + p.name;
+      var note = quoteOnly
+        ? "Scoped and quoted per brief"
+        : "Single Greater Mal\u00e9 location. Travel and extras quoted separately.";
 
       return '' +
         '<article class="package-card' + (p.popular ? " package-card--popular" : "") + '">' +
@@ -77,11 +82,11 @@
           '</div>' +
           '<div class="package-card__body">' +
             '<h3 class="package-card__name">' + escapeHtml(p.name) + '</h3>' +
-            '<p class="package-card__price"><span class="from">from</span> ' + escapeHtml(p.price) + '</p>' +
+            '<p class="package-card__price">' + escapeHtml(p.price) + '</p>' +
             '<ul class="package-card__includes">' + includes + '</ul>' +
             '<a class="btn btn-primary btn-block" href="booking.html?package=' + encodeURIComponent(p.id) + '" ' +
-              'data-cta="packages" data-package="' + escapeHtml(p.name) + '">Choose ' + escapeHtml(p.name) + '</a>' +
-            '<p class="package-card__note">Demo prices</p>' +
+              'data-cta="packages" data-package="' + escapeHtml(p.name) + '">' + escapeHtml(cta) + '</a>' +
+            '<p class="package-card__note">' + escapeHtml(note) + '</p>' +
           '</div>' +
         '</article>';
     }).join("");

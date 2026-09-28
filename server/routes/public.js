@@ -96,6 +96,9 @@ router.post("/api/leads", leadLimiter, express.json({ limit: "16kb" }), (req, re
   const shootType = String(b.shoot_type || "").trim();
   const packageName = String(b.package_name || "").trim();
   const preferredDate = String(b.preferred_date || "").trim();
+  const projectDetails = String(b.project_details || "").trim().slice(0, 4000);
+  const budgetRange = String(b.budget_range || "").trim().slice(0, 120);
+  const locations = String(b.locations || "").trim().slice(0, 300);
   const consent = b.consent ? 1 : 0;
 
   const errors = {};
@@ -116,16 +119,20 @@ router.post("/api/leads", leadLimiter, express.json({ limit: "16kb" }), (req, re
   const createdAt = new Date().toISOString();
   const info = db
     .prepare(
-      `INSERT INTO leads (name, email, phone, shoot_type, package_name, preferred_date, consent, status, source, created_at)
-       VALUES (?,?,?,?,?,?,?, 'new', 'website', ?)`
+      `INSERT INTO leads (name, email, phone, shoot_type, package_name, preferred_date,
+                          project_details, budget_range, locations, consent, status, source, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?, 'new', 'website', ?)`
     )
-    .run(name, email, phone, shootType, packageName, preferredDate, consent, createdAt);
+    .run(name, email, phone, shootType, packageName, preferredDate,
+         projectDetails, budgetRange, locations, consent, createdAt);
 
   // Fire-and-forget emails (no-op unless SMTP is configured):
   //  1) notify the business, 2) auto-reply confirmation to the customer.
   const lead = {
     name: name, email: email, phone: phone, shoot_type: shootType,
-    package_name: packageName, preferred_date: preferredDate, created_at: createdAt
+    package_name: packageName, preferred_date: preferredDate,
+    project_details: projectDetails, budget_range: budgetRange, locations: locations,
+    created_at: createdAt
   };
   mailer.sendLeadNotification(lead).catch((err) => console.error("[mail] notification failed:", err.message));
   mailer.sendCustomerAutoReply(lead).catch((err) => console.error("[mail] auto-reply failed:", err.message));

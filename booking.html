@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Book Your Shoot — CreativeConnect</title>
-  <meta name="description" content="Pick a package, tell us your date, and get a free shoot plan and quote within 24 hours. No payment needed to request a booking.">
+  <meta name="description" content="Pick a package, tell us your date, and we send a written quote confirming crew, travel, deliverables and timeline.">
 
   <!-- Canonical: https://<user>.github.io/creativeconnect/booking.html -->
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="CreativeConnect">
   <meta property="og:title" content="Book Your Shoot — CreativeConnect">
-  <meta property="og:description" content="Pick a package, tell us your date, and we'll send a free shoot plan and quote within 24 hours.">
+  <meta property="og:description" content="Pick a package, tell us your date, and we'll send a written quote for approval.">
   <!-- REPLACE: assets/img/og-image.jpg (1200x630) -->
   <meta property="og:image" content="https://picsum.photos/seed/og-image/1200/630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Book Your Shoot — CreativeConnect">
-  <meta name="twitter:description" content="Pick a package, tell us your date, and we'll send a free shoot plan and quote within 24 hours.">
+  <meta name="twitter:description" content="Pick a package, tell us your date, and we'll send a written quote for approval.">
   <meta name="twitter:image" content="https://picsum.photos/seed/og-image/1200/630">
 
   <link rel="icon" href="assets/img/logo.svg">
@@ -55,7 +55,7 @@
         <div class="section__head" data-reveal>
           <p class="eyebrow">Booking</p>
           <h1>Book your shoot</h1>
-          <p class="muted">Pick a package, tell us your date, and we'll send a free shoot plan and quote within 24 hours.</p>
+          <p class="muted">Pick a package, tell us your date, and we'll send a written quote for approval.</p>
         </div>
 
         <form id="booking-form" novalidate>
@@ -116,6 +116,34 @@
                 <span class="field-error" id="error-preferred_date" aria-live="polite"></span>
               </div>
 
+              <!-- Shown only for the "Going Big" custom-quote package -->
+              <div id="brief-block" hidden>
+                <div class="field">
+                  <label for="field-project-details">Tell us about the project <span class="req" aria-hidden="true">*</span></label>
+                  <textarea id="field-project-details" name="project_details" rows="4"
+                            aria-describedby="error-project_details"
+                            placeholder="What are we covering, what outputs do you need (photos, film, social cut-downs), and how many days?"></textarea>
+                  <span class="field-error" id="error-project_details" aria-live="polite"></span>
+                </div>
+
+                <div class="field">
+                  <label for="field-locations">Locations <span class="hint">(optional)</span></label>
+                  <input type="text" id="field-locations" name="locations"
+                         placeholder="Island, resort or venue — add more than one if the shoot travels">
+                </div>
+
+                <div class="field">
+                  <label for="field-budget">Budget range <span class="hint">(optional)</span></label>
+                  <select id="field-budget" name="budget_range">
+                    <option value="">Prefer not to say</option>
+                    <option value="Under MVR 10,000">Under MVR 10,000</option>
+                    <option value="MVR 10,000 - 25,000">MVR 10,000 – 25,000</option>
+                    <option value="MVR 25,000 - 50,000">MVR 25,000 – 50,000</option>
+                    <option value="Over MVR 50,000">Over MVR 50,000</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="field field-consent">
                 <input type="checkbox" id="field-consent" name="consent" required aria-required="true"
                        aria-describedby="error-consent">
@@ -138,10 +166,10 @@
             <aside class="next-box" data-reveal>
               <h3>What happens next</h3>
               <ul>
-                <li>We reply within 24 hours.</li>
-                <li>You get a free shoot plan tailored to your day.</li>
-                <li>We hold your date for 48 hours.</li>
-                <li>No payment needed now.</li>
+                <li>We review your brief.</li>
+                <li>You get a written quote confirming crew, location, travel, deliverables and timeline.</li>
+                <li>Nothing is booked until you approve the quote.</li>
+                <li>This is an enquiry, not a reservation. No payment needed now.</li>
               </ul>
             </aside>
           </div>

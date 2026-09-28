@@ -345,7 +345,7 @@ const LEAD_STATUSES = ["new", "contacted", "quoted", "booked", "lost", "archived
 
 router.get("/leads/export.csv", (req, res) => {
   const rows = db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
-  const cols = ["id", "created_at", "name", "email", "phone", "shoot_type", "package_name", "preferred_date", "consent", "status", "notes"];
+  const cols = ["id", "created_at", "name", "email", "phone", "shoot_type", "package_name", "preferred_date", "project_details", "budget_range", "locations", "consent", "status", "notes"];
   const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
   const csv = [cols.join(",")]
     .concat(rows.map((r) => cols.map((c) => esc(r[c])).join(",")))

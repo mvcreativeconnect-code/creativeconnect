@@ -20,18 +20,20 @@ window.CC_CONFIG = {
     subtitle: "Photo and video for weddings, events and brands across the Maldives."
   },
   trust: [
-    "Reply within 24 hours",
+    "Written quote before you book",
     "Photo + video in one team",
     "Island-wide travel"
   ],
 
   packages: [
     { id: "essentials", name: "Essentials", price: "MVR 2,500", popular: false, image: "package-essentials",
-      includes: ["2 hours of photography", "30 edited photos", "Online gallery", "Delivery in 5 days"] },
+      includes: ["Up to 2 hours at one location", "30 edited photos", "Private online gallery", "Target delivery: 5 business days"] },
     { id: "story", name: "Story", price: "MVR 5,500", popular: true, image: "package-story",
-      includes: ["Half-day photography", "60-second highlight reel", "80 edited photos", "Online gallery", "Delivery in 7 days"] },
+      includes: ["Up to 4 hours of photo and video", "80 edited photos", "One 60-second highlight reel", "Private online gallery", "Target delivery: 7 business days"] },
     { id: "brand", name: "Brand", price: "MVR 9,500", popular: false, image: "package-brand",
-      includes: ["Full-day photo + video", "3 social cut-downs (reels)", "120 edited photos", "Usage rights for marketing", "Delivery in 10 days"] }
+      includes: ["Up to 8 hours of photo and video", "120 edited photos", "Three short vertical social reels", "Use on your own website and organic social", "Target delivery: 10 business days"] },
+    { id: "going-big", name: "Going Big", price: "Custom quote", popular: false, image: "package-goingbig",
+      includes: ["Full weddings, resort campaigns and multi-location events", "Crew, schedule and deliverables planned around your brief", "Drone, talent and styling quoted as needed", "No fixed hours or deliverable counts", "Timeline agreed in the quote"] }
   ],
 
   portfolio: [

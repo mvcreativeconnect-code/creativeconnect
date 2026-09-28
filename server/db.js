@@ -81,6 +81,14 @@ db.exec(`
 
 // --- Migrations ------------------------------------------------------------
 // Add a role column to admins (owner | editor) for multi-user support.
+// Extra brief fields captured with a custom-quote ("Going Big") request.
+var leadCols = db.prepare("PRAGMA table_info(leads)").all().map((c) => c.name);
+["project_details", "budget_range", "locations"].forEach(function (col) {
+  if (leadCols.indexOf(col) === -1) {
+    db.exec("ALTER TABLE leads ADD COLUMN " + col + " TEXT NOT NULL DEFAULT ''");
+  }
+});
+
 var adminCols = db.prepare("PRAGMA table_info(admins)").all().map((c) => c.name);
 if (adminCols.indexOf("role") === -1) {
   db.exec("ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'editor'");
@@ -96,7 +104,7 @@ const DEFAULT_SETTINGS = {
   hero_title: "Your story, beautifully shot.",
   hero_subtitle: "Photo and video for weddings, events and brands across the Maldives.",
   trust_items: JSON.stringify([
-    "Reply within 24 hours",
+    "Written quote before you book",
     "Photo + video in one team",
     "Island-wide travel"
   ]),
@@ -119,15 +127,19 @@ const DEFAULT_SETTINGS = {
 const DEFAULT_PACKAGES = [
   {
     slug: "essentials", name: "Essentials", price: "MVR 2,500", popular: 0, image: "package-essentials",
-    features: ["2 hours of photography", "30 edited photos", "Online gallery", "Delivery in 5 days"]
+    features: ["Up to 2 hours at one location", "30 edited photos", "Private online gallery", "Target delivery: 5 business days"]
   },
   {
     slug: "story", name: "Story", price: "MVR 5,500", popular: 1, image: "package-story",
-    features: ["Half-day photography", "60-second highlight reel", "80 edited photos", "Online gallery", "Delivery in 7 days"]
+    features: ["Up to 4 hours of photo and video", "80 edited photos", "One 60-second highlight reel", "Private online gallery", "Target delivery: 7 business days"]
   },
   {
     slug: "brand", name: "Brand", price: "MVR 9,500", popular: 0, image: "package-brand",
-    features: ["Full-day photo + video", "3 social cut-downs (reels)", "120 edited photos", "Usage rights for marketing", "Delivery in 10 days"]
+    features: ["Up to 8 hours of photo and video", "120 edited photos", "Three short vertical social reels", "Use on your own website and organic social", "Target delivery: 10 business days"]
+  },
+  {
+    slug: "going-big", name: "Going Big", price: "Custom quote", popular: 0, image: "package-goingbig",
+    features: ["Full weddings, resort campaigns and multi-location events", "Crew, schedule and deliverables planned around your brief", "Drone, talent and styling quoted as needed", "No fixed hours or deliverable counts", "Timeline agreed in the quote"]
   }
 ];
 

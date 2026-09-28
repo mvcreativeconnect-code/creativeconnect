@@ -177,7 +177,8 @@ p { margin: 0 0 1rem; }
 
 /* ----- Packages ---------------------------------------------------------- */
 .packages-grid { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
-@media (min-width: 720px) { .packages-grid { grid-template-columns: repeat(3, 1fr); align-items: start; } }
+@media (min-width: 720px) { .packages-grid { grid-template-columns: repeat(2, 1fr); align-items: start; } }
+@media (min-width: 1080px) { .packages-grid { grid-template-columns: repeat(4, 1fr); } }
 
 .package-card {
   position: relative; background: var(--surface); border: 1px solid var(--line);
@@ -361,12 +362,13 @@ p { margin: 0 0 1rem; }
 .field input[type="email"],
 .field input[type="tel"],
 .field input[type="date"],
+.field textarea,
 .field select {
   width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line);
   border-radius: var(--radius-sm); padding: .75rem .85rem; font: inherit;
 }
-.field input:focus, .field select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(232,163,61,.25); }
-.field input[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: var(--danger); }
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(232,163,61,.25); }
+.field input[aria-invalid="true"], .field textarea[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: var(--danger); }
 .field-error { color: var(--danger); font-size: .85rem; margin-top: .35rem; min-height: 1em; }
 
 .field-consent { display: flex; gap: .6rem; align-items: flex-start; }
@@ -422,3 +424,5 @@ p { margin: 0 0 1rem; }
   [data-reveal] { opacity: 1; transform: none; }
   .btn:hover, .package-card:hover, .portfolio-item:hover img { transform: none; }
 }
+.field textarea { min-height: 7.5rem; resize: vertical; font-family: inherit; line-height: 1.5; }
+#brief-block { display: grid; gap: var(--gap-sm, .9rem); }

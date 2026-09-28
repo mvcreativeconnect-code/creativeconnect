@@ -49,7 +49,7 @@
           '<span class="pkg-option__inner">' +
             (p.popular ? '<span class="pkg-option__badge">Most popular</span>' : "") +
             '<span class="pkg-option__name">' + escapeHtml(p.name) + '</span>' +
-            '<span class="pkg-option__price"><span class="from">from</span> ' + escapeHtml(p.price) + '</span>' +
+            '<span class="pkg-option__price">' + escapeHtml(p.price) + '</span>' +
             '<ul class="pkg-option__includes">' + includes + '</ul>' +
           '</span>' +
         '</label>';
@@ -74,8 +74,36 @@
       label.classList.toggle("is-selected", input.checked);
     });
 
+    toggleBrief(isQuoteOnly(pkg));
+
     track("select_package", { package_name: pkg.name });
     if (!isPreselect) maybeFormStart();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Custom-quote ("Going Big") brief fields
+  // ---------------------------------------------------------------------------
+  function isQuoteOnly(pkg) { return !!pkg && /custom quote/i.test(pkg.price || ""); }
+
+  var briefBlock = document.getElementById("brief-block");
+  var quoteMode = false;
+
+  function toggleBrief(on) {
+    quoteMode = !!on;
+    if (!briefBlock) return;
+    briefBlock.hidden = !quoteMode;
+    var details = document.getElementById("field-project-details");
+    if (details) {
+      if (quoteMode) { details.setAttribute("required", "required"); details.setAttribute("aria-required", "true"); }
+      else { details.removeAttribute("required"); details.removeAttribute("aria-required"); showError("project_details", ""); }
+    }
+    var submit = document.getElementById("submit-btn");
+    if (submit) submit.textContent = quoteMode ? "Request a custom quote" : "Send booking request";
+    var dateEl2 = document.getElementById("field-date");
+    if (dateEl2) {
+      var lbl = document.querySelector('label[for="field-date"]');
+      if (lbl) lbl.firstChild.nodeValue = quoteMode ? "Preferred start date " : "Preferred date ";
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -115,6 +143,13 @@
         var today = new Date(); today.setHours(0, 0, 0, 0);
         var picked = new Date(v + "T00:00:00");
         return picked < today ? "Please choose a date that isn't in the past." : "";
+      }
+    },
+    project_details: {
+      el: form.querySelector("#field-project-details"),
+      validate: function (v) {
+        if (!quoteMode) return "";
+        return v.trim().length >= 20 ? "" : "Please tell us a little about the project (at least a sentence).";
       }
     },
     consent: {
@@ -190,7 +225,8 @@
           shoot_type: data.shoot_type,
           form_id: "booking"
         }, function () {
-          window.location.href = "thanks.html?package=" + encodeURIComponent(data.package_id);
+          window.location.href = "thanks.html?package=" + encodeURIComponent(data.package_id) +
+            (data.quote_only ? "&type=quote" : "");
         });
       })
       .catch(function (err) {
@@ -213,8 +249,17 @@
       preferred_date: fields.preferred_date.el.value,
       consent: fields.consent.el.checked,
       package_id: pkg.id || pkgId,
-      package_name: pkg.name || ""
+      package_name: pkg.name || "",
+      quote_only: /custom quote/i.test(pkg.price || ""),
+      project_details: val("#field-project-details"),
+      budget_range: val("#field-budget"),
+      locations: val("#field-locations")
     };
+  }
+
+  function val(sel) {
+    var el = form.querySelector(sel);
+    return el && el.value ? el.value.trim() : "";
   }
 
   // Static build (e.g. GitHub Pages) has no backend, so the request is sent
@@ -250,6 +295,9 @@
         shoot_type: data.shoot_type,
         package_name: data.package_name,
         preferred_date: data.preferred_date,
+        project_details: data.project_details,
+        budget_range: data.budget_range,
+        locations: data.locations,
         consent: data.consent,
         website: (document.getElementById("cc-website") || {}).value || "" // honeypot
       })
