@@ -83,7 +83,7 @@
   // ---------------------------------------------------------------------------
   // Custom-quote ("Going Big") brief fields
   // ---------------------------------------------------------------------------
-  function isQuoteOnly(pkg) { return !!pkg && /custom quote/i.test(pkg.price || ""); }
+  function isQuoteOnly(pkg) { return !!pkg && /custom/i.test(pkg.price || ""); }
 
   var briefBlock = document.getElementById("brief-block");
   var quoteMode = false;
@@ -250,7 +250,7 @@
       consent: fields.consent.el.checked,
       package_id: pkg.id || pkgId,
       package_name: pkg.name || "",
-      quote_only: /custom quote/i.test(pkg.price || ""),
+      quote_only: /custom/i.test(pkg.price || ""),
       project_details: val("#field-project-details"),
       budget_range: val("#field-budget"),
       locations: val("#field-locations")

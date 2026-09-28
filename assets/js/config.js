@@ -32,7 +32,7 @@ window.CC_CONFIG = {
       includes: ["Up to 4 hours of photo and video", "80 edited photos", "One 60-second highlight reel", "Private online gallery", "Target delivery: 7 business days"] },
     { id: "brand", name: "Brand", price: "MVR 9,500", popular: false, image: "package-brand",
       includes: ["Up to 8 hours of photo and video", "120 edited photos", "Three short vertical social reels", "Use on your own website and organic social", "Target delivery: 10 business days"] },
-    { id: "going-big", name: "Going Big", price: "Custom quote", popular: false, image: "package-goingbig",
+    { id: "going-big", name: "Going Big", price: "Custom price", popular: false, image: "package-goingbig",
       includes: ["Full weddings, resort campaigns and multi-location events", "Crew, schedule and deliverables planned around your brief", "Drone, talent and styling quoted as needed", "No fixed hours or deliverable counts", "Timeline agreed in the quote"] }
   ],
 

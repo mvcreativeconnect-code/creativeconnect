@@ -67,7 +67,7 @@
       var includes = (p.includes || []).map(function (i) {
         return '<li>' + escapeHtml(i) + '</li>';
       }).join("");
-      var quoteOnly = /custom quote/i.test(p.price || "");
+      var quoteOnly = /custom/i.test(p.price || "");
       var cta = quoteOnly ? "Request a custom quote" : "Choose " + p.name;
       var note = quoteOnly
         ? "Scoped and quoted per brief"

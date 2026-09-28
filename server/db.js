@@ -138,7 +138,7 @@ const DEFAULT_PACKAGES = [
     features: ["Up to 8 hours of photo and video", "120 edited photos", "Three short vertical social reels", "Use on your own website and organic social", "Target delivery: 10 business days"]
   },
   {
-    slug: "going-big", name: "Going Big", price: "Custom quote", popular: 0, image: "package-goingbig",
+    slug: "going-big", name: "Going Big", price: "Custom price", popular: 0, image: "package-goingbig",
     features: ["Full weddings, resort campaigns and multi-location events", "Crew, schedule and deliverables planned around your brief", "Drone, talent and styling quoted as needed", "No fixed hours or deliverable counts", "Timeline agreed in the quote"]
   }
 ];
