@@ -277,6 +277,13 @@ function getPublicConfig() {
     trust: safeParse(s.trust_items, []),
     businessName: s.business_name || "CreativeConnect",
     footerAbout: s.footer_about || "",
+    // Supabase backs the static (GitHub Pages) build: the public site inserts a
+    // lead with the anon key, the admin reads it after signing in. Both values
+    // are public and safe to commit (row-level security protects the data).
+    supabase: {
+      url: process.env.SUPABASE_URL || "https://ieinylsmdwxeilrnvkzp.supabase.co",
+      anonKey: process.env.SUPABASE_ANON_KEY || "sb_publishable_dV_nu-kiY3QUDdlJmuUIBg_vQ-hph60"
+    },
     packages: getActivePackages(),
     portfolio: getActivePortfolio()
   };

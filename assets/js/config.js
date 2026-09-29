@@ -14,6 +14,13 @@ window.CC_CONFIG = {
   whatsapp: "9607428224",
   email: "mvcreativeconnect@gmail.com",
 
+  // Supabase backs the static (GitHub Pages) build. Both values are public and
+  // safe to commit — row-level security protects the data.
+  supabase: {
+    url: "https://ieinylsmdwxeilrnvkzp.supabase.co",
+    anonKey: "sb_publishable_dV_nu-kiY3QUDdlJmuUIBg_vQ-hph60"
+  },
+
   hero: {
     eyebrow: "Book your shoot in 60 seconds",
     title: "Your story, beautifully shot.",

@@ -262,9 +262,53 @@
     return el && el.value ? el.value.trim() : "";
   }
 
-  // Static build (e.g. GitHub Pages) has no backend, so the request is sent
-  // via a pre-filled WhatsApp message instead of being saved to a database.
+  // Static build (GitHub Pages): save the booking straight into Supabase using
+  // the public (anon) key. Row-level security lets the public INSERT only — it
+  // cannot read leads back — and the database validates every field. If Supabase
+  // isn't configured, or the insert fails, we fall back to a WhatsApp message so
+  // the request still reaches the studio.
   function submitLeadStatic(data) {
+    // Honeypot: hidden field filled => bot. Pretend success, store nothing.
+    var hp = (document.getElementById("cc-website") || {}).value || "";
+    if (String(hp).trim()) return new Promise(function (r) { setTimeout(r, 300); });
+
+    var sb = cfg.supabase || {};
+    var base = String(sb.url || "").replace(/\/+$/, "");
+    if (!base || !sb.anonKey) return whatsappHandoff(data);
+
+    return fetch(base + "/rest/v1/leads", {
+      method: "POST",
+      headers: {
+        "apikey": sb.anonKey,
+        "Authorization": "Bearer " + sb.anonKey,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify({
+        name: data.firstname,
+        email: data.email,
+        phone: data.phone || null,
+        shoot_type: data.shoot_type,
+        package_slug: data.package_id,
+        preferred_date: data.preferred_date || null,
+        project_details: data.project_details || null,
+        locations: data.locations || null,
+        budget_range: data.budget_range || null,
+        consent: !!data.consent
+      })
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (t) {
+          throw new Error("Supabase " + res.status + ": " + t);
+        });
+      }
+      return true;
+    });
+  }
+
+  // Fallback when no backend is configured (or the insert failed): open a
+  // pre-filled WhatsApp (or email) message so the request still gets through.
+  function whatsappHandoff(data) {
     var wa = String(cfg.whatsapp || "").replace(/[^0-9]/g, "");
     var msg =
       "New booking request%0A" +
