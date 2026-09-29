@@ -112,7 +112,7 @@ const DEFAULT_SETTINGS = {
   instagram_handle: "mvcreativeconnect",
   whatsapp: "9607428224",
   email: "mvcreativeconnect@gmail.com",
-  ga4_measurement_id: "G-XXXXXXXXXX",
+  ga4_measurement_id: "G-5SC0HPEY5J",
   hubspot_portal_id: "",
   hubspot_form_id: "",
   smtp_host: "",
@@ -264,7 +264,7 @@ function getActivePortfolio() {
 function getPublicConfig() {
   const s = getSettings();
   return {
-    ga4MeasurementId: s.ga4_measurement_id || "G-XXXXXXXXXX",
+    ga4MeasurementId: s.ga4_measurement_id || "G-5SC0HPEY5J",
     hubspot: { portalId: s.hubspot_portal_id || "", formId: s.hubspot_form_id || "" },
     instagramHandle: s.instagram_handle || "",
     whatsapp: s.whatsapp || "",

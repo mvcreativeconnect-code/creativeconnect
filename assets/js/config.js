@@ -7,7 +7,7 @@
  * as plain files without the server — it keeps them from breaking.
  */
 window.CC_CONFIG = {
-  ga4MeasurementId: "G-XXXXXXXXXX",
+  ga4MeasurementId: "G-5SC0HPEY5J",
   hubspot: { portalId: "", formId: "" },
 
   instagramHandle: "mvcreativeconnect",
