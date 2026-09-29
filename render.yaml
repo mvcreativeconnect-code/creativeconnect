@@ -22,6 +22,25 @@ services:
       # Set this yourself in the Render dashboard (Environment tab) — keep it secret.
       - key: ADMIN_PASSWORD
         sync: false
+      # --- Email (Gmail SMTP): booking notification + customer auto-reply ---
+      # These are not secret, so they live here.
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        value: mvcreativeconnect@gmail.com
+      - key: MAIL_FROM
+        value: "CreativeConnect <mvcreativeconnect@gmail.com>"
+      - key: MAIL_TO
+        value: mvcreativeconnect@gmail.com
+      # Gmail App Password (16 chars, no spaces). Set in the Render dashboard
+      # (Environment tab) — NEVER commit it. Create one at:
+      # Google Account → Security → 2-Step Verification → App passwords.
+      - key: SMTP_PASS
+        sync: false
     # NOTE: The free plan has an EPHEMERAL filesystem — the SQLite database and
     # uploaded images reset whenever the service restarts or redeploys (default
     # content re-seeds automatically). To keep data permanently, upgrade to a
