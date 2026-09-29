@@ -1,7 +1,12 @@
 /*
  * CreativeConnect — shared UI behaviour.
- * Runs on every page. Each feature guards on the elements it needs,
- * so loading it everywhere is safe.
+ * Runs on every page. Each feature guards on the elements it needs, so loading
+ * it everywhere is safe.
+ *
+ * Content (hero text, trust, packages, portfolio, contact details) renders from
+ * window.CC_CONFIG. content.js may refresh CC_CONFIG from Supabase and dispatch
+ * "cc:content-updated"; we re-render on that. Event handlers are bound once and
+ * use delegation, so re-rendering never breaks clicks.
  */
 (function () {
   "use strict";
@@ -9,14 +14,14 @@
   var cfg = window.CC_CONFIG || {};
   var CC = window.CC || (window.CC = {});
   var track = CC.track || function () {};
+  var currentFilter = "all";
 
-  // ---------------------------------------------------------------------------
-  // Config-driven contact + social links / text
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // Re-renderable content (safe to run any number of times)
+  // ===========================================================================
   function fillFromConfig() {
     var waUrl = "https://wa.me/" + String(cfg.whatsapp || "").replace(/[^0-9]/g, "");
     var igUrl = "https://instagram.com/" + (cfg.instagramHandle || "");
-
     each("[data-wa-link]", function (a) { a.href = waUrl; });
     each("[data-ig-link]", function (a) { a.href = igUrl; });
     each("[data-ig-handle]", function (el) { el.textContent = "@" + (cfg.instagramHandle || ""); });
@@ -24,40 +29,19 @@
     each("[data-email]", function (el) { el.textContent = cfg.email || ""; });
   }
 
-  // ---------------------------------------------------------------------------
-  // Mobile navigation (hamburger)
-  // ---------------------------------------------------------------------------
-  function initNav() {
-    var toggle = document.querySelector(".nav-toggle");
-    var menu = document.getElementById("primary-nav");
-    if (!toggle || !menu) return;
+  function renderHeroTrustFooter() {
+    var hero = cfg.hero || {};
+    setText('[data-cc="hero-eyebrow"]', hero.eyebrow);
+    setText('[data-cc="hero-title"]', hero.title);
+    setText('[data-cc="hero-subtitle"]', hero.subtitle);
+    setText('[data-cc="footer-about"]', cfg.footerAbout);
 
-    function close() {
-      toggle.setAttribute("aria-expanded", "false");
-      menu.classList.remove("is-open");
+    var ul = document.querySelector('[data-cc="trust-list"]');
+    if (ul && Array.isArray(cfg.trust)) {
+      ul.innerHTML = cfg.trust.map(function (t) { return "<li>" + escapeHtml(t) + "</li>"; }).join("");
     }
-    function open() {
-      toggle.setAttribute("aria-expanded", "true");
-      menu.classList.add("is-open");
-    }
-
-    toggle.addEventListener("click", function () {
-      var expanded = toggle.getAttribute("aria-expanded") === "true";
-      expanded ? close() : open();
-    });
-
-    // Close when a nav link is chosen (mobile) or on Escape.
-    menu.addEventListener("click", function (e) {
-      if (e.target.closest("a")) close();
-    });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") close();
-    });
   }
 
-  // ---------------------------------------------------------------------------
-  // Package cards on the home page (#packages)
-  // ---------------------------------------------------------------------------
   function renderHomePackages() {
     var grid = document.getElementById("packages-grid");
     if (!grid) return;
@@ -71,7 +55,7 @@
       var cta = quoteOnly ? "Request a custom quote" : "Choose " + p.name;
       var note = quoteOnly
         ? "Scoped and quoted per brief"
-        : "Single Greater Mal\u00e9 location. Travel and extras quoted separately.";
+        : "Single Greater Malé location. Travel and extras quoted separately.";
 
       return '' +
         '<article class="package-card' + (p.popular ? " package-card--popular" : "") + '">' +
@@ -92,9 +76,6 @@
     }).join("");
   }
 
-  // ---------------------------------------------------------------------------
-  // Portfolio grid + filter tabs, rendered from config (DB-driven)
-  // ---------------------------------------------------------------------------
   function renderPortfolio() {
     var grid = document.getElementById("portfolio-grid");
     if (!grid) return;
@@ -110,7 +91,6 @@
         '</button>';
     }).join("");
 
-    // Build filter tabs from the distinct categories present (first-seen order).
     var filters = document.getElementById("portfolio-filters");
     if (filters) {
       var cats = [];
@@ -120,146 +100,139 @@
       });
       var tabs = ['<button class="filter-tab is-active" role="tab" aria-selected="true" data-filter="all">All</button>'];
       cats.forEach(function (c) {
-        tabs.push(
-          '<button class="filter-tab" role="tab" aria-selected="false" data-filter="' +
-            escapeHtml(c) + '">' + escapeHtml(c) + "</button>"
-        );
+        tabs.push('<button class="filter-tab" role="tab" aria-selected="false" data-filter="' +
+          escapeHtml(c) + '">' + escapeHtml(c) + "</button>");
       });
       filters.innerHTML = tabs.join("");
     }
+    currentFilter = "all";
+    applyFilter("all");
   }
 
-  // ---------------------------------------------------------------------------
-  // Portfolio filter (#work)
-  // ---------------------------------------------------------------------------
-  function initPortfolioFilter() {
-    var tabs = document.querySelectorAll(".filter-tab");
-    var items = document.querySelectorAll(".portfolio-item");
-    if (!tabs.length || !items.length) return;
-
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        var filter = tab.getAttribute("data-filter");
-
-        tabs.forEach(function (t) {
-          var active = t === tab;
-          t.classList.toggle("is-active", active);
-          t.setAttribute("aria-selected", active ? "true" : "false");
-        });
-
-        items.forEach(function (item) {
-          var cat = item.getAttribute("data-category");
-          var show = filter === "all" || cat === filter;
-          item.hidden = !show;
-        });
-      });
+  function applyFilter(filter) {
+    filter = filter || "all";
+    Array.prototype.forEach.call(document.querySelectorAll(".portfolio-item"), function (item) {
+      var cat = item.getAttribute("data-category");
+      item.hidden = !(filter === "all" || cat === filter);
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Accessible lightbox for the portfolio
-  // ---------------------------------------------------------------------------
-  function initLightbox() {
-    var triggers = Array.prototype.slice.call(document.querySelectorAll(".portfolio-item"));
-    var box = document.getElementById("lightbox");
-    if (!triggers.length || !box) return;
+  // Re-render everything that comes from config. Called on load and whenever
+  // content.js refreshes CC_CONFIG from Supabase.
+  function applyContent() {
+    cfg = window.CC_CONFIG || cfg;
+    fillFromConfig();
+    renderHeroTrustFooter();
+    renderHomePackages();
+    renderPortfolio();
+  }
+  CC.applyContent = applyContent;
 
+  // ===========================================================================
+  // Event handlers — bound ONCE, delegated so they survive re-renders
+  // ===========================================================================
+  function initNav() {
+    var toggle = document.querySelector(".nav-toggle");
+    var menu = document.getElementById("primary-nav");
+    if (!toggle || !menu) return;
+    function close() { toggle.setAttribute("aria-expanded", "false"); menu.classList.remove("is-open"); }
+    function open() { toggle.setAttribute("aria-expanded", "true"); menu.classList.add("is-open"); }
+    toggle.addEventListener("click", function () {
+      (toggle.getAttribute("aria-expanded") === "true") ? close() : open();
+    });
+    menu.addEventListener("click", function (e) { if (e.target.closest("a")) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  }
+
+  function initPortfolioFilter() {
+    document.addEventListener("click", function (e) {
+      var tab = e.target.closest(".filter-tab");
+      if (!tab) return;
+      currentFilter = tab.getAttribute("data-filter");
+      Array.prototype.forEach.call(document.querySelectorAll(".filter-tab"), function (t) {
+        var active = t === tab;
+        t.classList.toggle("is-active", active);
+        t.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      applyFilter(currentFilter);
+    });
+  }
+
+  function initLightbox() {
+    var box = document.getElementById("lightbox");
+    if (!box) return;
     var imgEl = box.querySelector(".lightbox__img");
     var closeBtn = box.querySelector(".lightbox__close");
     var prevBtn = box.querySelector(".lightbox__prev");
     var nextBtn = box.querySelector(".lightbox__next");
-    var current = 0;
-    var lastFocused = null;
+    var current = 0, lastFocused = null;
 
-    function visibleTriggers() {
-      return triggers.filter(function (t) { return !t.hidden; });
+    function visible() {
+      return Array.prototype.slice.call(document.querySelectorAll(".portfolio-item"))
+        .filter(function (t) { return !t.hidden; });
     }
-
     function show(list, index) {
+      if (!list.length) return;
       current = (index + list.length) % list.length;
-      var src = list[current].getAttribute("data-full");
-      var alt = list[current].querySelector("img").getAttribute("alt");
-      imgEl.src = src;
-      imgEl.alt = alt;
+      var t = list[current];
+      imgEl.src = t.getAttribute("data-full");
+      imgEl.alt = t.querySelector("img").getAttribute("alt");
     }
-
-    function open(trigger) {
-      var list = visibleTriggers();
-      var index = list.indexOf(trigger);
-      if (index < 0) return;
+    function openItem(trigger) {
+      var list = visible();
+      var i = list.indexOf(trigger);
+      if (i < 0) return;
       lastFocused = document.activeElement;
-      show(list, index);
+      show(list, i);
       box.hidden = false;
       document.body.classList.add("no-scroll");
       closeBtn.focus();
     }
-
     function close() {
       box.hidden = true;
       document.body.classList.remove("no-scroll");
       if (lastFocused) lastFocused.focus();
     }
+    function step(d) { show(visible(), current + d); }
 
-    function step(delta) {
-      var list = visibleTriggers();
-      show(list, current + delta);
-    }
-
-    triggers.forEach(function (t) {
-      t.addEventListener("click", function () { open(t); });
+    document.addEventListener("click", function (e) {
+      var it = e.target.closest(".portfolio-item");
+      if (it) openItem(it);
     });
     closeBtn.addEventListener("click", close);
     prevBtn.addEventListener("click", function () { step(-1); });
     nextBtn.addEventListener("click", function () { step(1); });
-
-    // Click on the backdrop closes.
-    box.addEventListener("click", function (e) {
-      if (e.target === box) close();
-    });
-
+    box.addEventListener("click", function (e) { if (e.target === box) close(); });
     document.addEventListener("keydown", function (e) {
       if (box.hidden) return;
       if (e.key === "Escape") close();
       else if (e.key === "ArrowLeft") step(-1);
       else if (e.key === "ArrowRight") step(1);
       else if (e.key === "Tab") {
-        // simple focus trap across the three controls
-        var focusables = [closeBtn, prevBtn, nextBtn];
-        var i = focusables.indexOf(document.activeElement);
-        if (e.shiftKey && i <= 0) { e.preventDefault(); focusables[focusables.length - 1].focus(); }
-        else if (!e.shiftKey && i === focusables.length - 1) { e.preventDefault(); focusables[0].focus(); }
+        var f = [closeBtn, prevBtn, nextBtn];
+        var i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
       }
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Fade-in on scroll (disabled under prefers-reduced-motion)
-  // ---------------------------------------------------------------------------
   function initReveal() {
     var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var els = document.querySelectorAll("[data-reveal]");
     if (!els.length) return;
-
     if (reduce || !("IntersectionObserver" in window)) {
       els.forEach(function (el) { el.classList.add("is-revealed"); });
       return;
     }
-
     var obs = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-revealed");
-          obs.unobserve(entry.target);
-        }
+        if (entry.isIntersecting) { entry.target.classList.add("is-revealed"); obs.unobserve(entry.target); }
       });
     }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
-
     els.forEach(function (el) { obs.observe(el); });
   }
 
-  // ---------------------------------------------------------------------------
-  // Delegated analytics: cta_click + social_click (covers dynamic elements)
-  // ---------------------------------------------------------------------------
   function initTracking() {
     document.addEventListener("click", function (e) {
       var cta = e.target.closest("[data-cta]");
@@ -269,7 +242,6 @@
         if (pkg) params.package_name = pkg;
         track("cta_click", params);
       }
-
       var social = e.target.closest("[data-social]");
       if (social) {
         track("social_click", {
@@ -280,40 +252,39 @@
     });
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // Helpers
-  // ---------------------------------------------------------------------------
-  function each(sel, fn) {
-    Array.prototype.forEach.call(document.querySelectorAll(sel), fn);
+  // ===========================================================================
+  function each(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); }
+  function setText(sel, value) {
+    if (value == null) return;
+    each(sel, function (el) { el.textContent = value; });
   }
   function escapeHtml(str) {
     return String(str)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
-  // A package image can be a real/uploaded URL (used as-is) or a seed word
-  // (turned into a Picsum placeholder).
   function packageImg(image) {
     if (!image) return "https://picsum.photos/seed/package/600/400";
     if (/^(https?:)?\/\//.test(image) || image.charAt(0) === "/") return image;
     return "https://picsum.photos/seed/" + encodeURIComponent(image) + "/600/400";
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // Boot
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   function init() {
-    fillFromConfig();
+    applyContent();          // render everything from config
     initNav();
-    renderHomePackages();
-    renderPortfolio();
-    initPortfolioFilter();
-    initLightbox();
+    initPortfolioFilter();   // delegated — bound once
+    initLightbox();          // delegated — bound once
     initReveal();
     initTracking();
-
-    // Footer year (in case it isn't the demo's fixed 2026 later).
     each("[data-year]", function (el) { el.textContent = new Date().getFullYear(); });
+
+    // content.js refreshes CC_CONFIG from Supabase, then fires this.
+    document.addEventListener("cc:content-updated", applyContent);
   }
 
   if (document.readyState === "loading") {

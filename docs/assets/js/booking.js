@@ -402,4 +402,10 @@
 
   // Init
   renderPackages();
+
+  // Re-render the package selector if content.js refreshes packages from Supabase.
+  document.addEventListener("cc:content-updated", function () {
+    packages = (window.CC_CONFIG && window.CC_CONFIG.packages) || packages;
+    renderPackages();
+  });
 })();

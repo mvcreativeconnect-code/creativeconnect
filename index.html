@@ -68,9 +68,9 @@
       <div class="hero__dots" aria-label="Hero slideshow"></div>
       <div class="container">
         <div class="hero__content" data-reveal>
-          <p class="eyebrow">{{HERO_EYEBROW}}</p>
-          <h1>{{HERO_TITLE}}</h1>
-          <p class="hero__sub">{{HERO_SUBTITLE}}</p>
+          <p class="eyebrow" data-cc="hero-eyebrow">{{HERO_EYEBROW}}</p>
+          <h1 data-cc="hero-title">{{HERO_TITLE}}</h1>
+          <p class="hero__sub" data-cc="hero-subtitle">{{HERO_SUBTITLE}}</p>
           <div class="hero__actions">
             <a class="btn btn-primary" href="booking.html" data-cta="hero">Book a shoot</a>
             <a class="btn btn-ghost" href="#work">See our work</a>
@@ -110,7 +110,7 @@
     <!-- ================= TRUST STRIP ================= -->
     <section class="trust">
       <div class="container">
-        <ul>
+        <ul data-cc="trust-list">
           {{TRUST_ITEMS}}
         </ul>
       </div>
@@ -359,7 +359,7 @@
       <div class="site-footer__grid">
         <div>
           <a class="brand" href="index.html"><img class="brand__mark" src="assets/img/logo.svg" alt="" width="30" height="30" aria-hidden="true">Creative<b>Connect</b></a>
-          <p class="site-footer__about">{{FOOTER_ABOUT}}</p>
+          <p class="site-footer__about" data-cc="footer-about">{{FOOTER_ABOUT}}</p>
         </div>
         <div>
           <h4>Explore</h4>
@@ -394,6 +394,7 @@
   </div>
 
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/content.js"></script>
   <script src="assets/js/analytics.js"></script>
   <script src="assets/js/main.js"></script>
 </body>
