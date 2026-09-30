@@ -98,8 +98,8 @@
     el.setAttribute("aria-label", "Cookie consent");
     el.innerHTML =
       '<div class="cookie-banner__inner">' +
-        '<p class="cookie-banner__text">We use Google Analytics to understand how visitors use this demo. ' +
-          'Analytics cookies only run if you accept. ' +
+        '<p class="cookie-banner__text">We use cookies to measure visits and understand how people use this site. ' +
+          'They only run if you accept, and store no personal data. ' +
           '<a href="privacy.html">Privacy &amp; cookies</a>.</p>' +
         '<div class="cookie-banner__actions">' +
           '<button type="button" class="btn btn-ghost" data-consent="decline">Decline</button>' +
@@ -131,6 +131,8 @@
     writeConsent("granted");
     gtag("consent", "update", { analytics_storage: "granted" });
     hideBanner();
+    // Let the visitor tracker (visits.js) start immediately on this page load.
+    document.dispatchEvent(new Event("cc:consent-granted"));
   }
 
   function declineConsent() {

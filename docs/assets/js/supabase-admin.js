@@ -86,6 +86,23 @@
   var leads = [];
   var content = null;        // site_config.data (or null if not set up)
   var contentError = null;
+  var visits = [];           // recent visit rows
+  var visitsError = null;
+  var visitsRange = 30;      // days
+  var reportDate = isoDay(new Date(Date.now() - 864e5)); // default: yesterday
+  var charts = [];           // live Chart.js instances (destroyed on view change)
+
+  function fetchVisits() {
+    var since = new Date(Date.now() - visitsRange * 864e5).toISOString();
+    var q = "/rest/v1/visits?select=id,visitor_id,is_new,path,referrer,device,browser,created_at" +
+      "&created_at=gte." + encodeURIComponent(since) + "&order=created_at.desc&limit=20000";
+    return authFetch(q, { headers: { "Accept": "application/json" } })
+      .then(function (res) {
+        if (!res.ok) return res.text().then(function (t) { throw new Error(t); });
+        return res.json();
+      }).then(function (rows) { visitsError = null; visits = rows || []; return visits; })
+      .catch(function (e) { visitsError = e.message; visits = []; });
+  }
 
   function fetchLeads() {
     return authFetch("/rest/v1/leads?select=*&order=created_at.desc", { headers: { "Accept": "application/json" } })
@@ -194,12 +211,205 @@
   }
 
   function view_analytics() {
-    if (!leads.length) return '<h1 class="page">Analytics</h1><p class="page-sub">Insights from your bookings.</p><div class="card"><p class="muted">No bookings yet — charts appear once requests come in.</p></div>';
-    return '<h1 class="page">Analytics</h1><p class="page-sub">From your booking requests. (Website traffic lives in Google Analytics.)</p>' +
-      '<div class="card"><h2>By status</h2>' + bars(countBy(leads, function (l) { return l.status; }, STATUSES)) + '</div>' +
-      '<div class="card"><h2>By package</h2>' + bars(countBy(leads, function (l) { return l.package_slug || "—"; })) + '</div>' +
-      '<div class="card"><h2>By shoot type</h2>' + bars(countBy(leads, function (l) { return l.shoot_type || "—"; })) + '</div>' +
-      '<div class="card"><h2>Last 6 weeks</h2>' + bars(byWeek(leads, 6)) + '</div>';
+    var head = '<h1 class="page">Analytics</h1><p class="page-sub">Visitor traffic to your site.</p>';
+    if (visitsError) {
+      return head + '<div class="card"><h2>One-time setup needed</h2><p class="muted">To collect visitor stats, run <code>supabase/analytics-schema.sql</code> once in your Supabase SQL editor, then reload.</p><p class="hint">(' + esc(visitsError) + ')</p></div>';
+    }
+    var s = visitorStats();
+    var ranges = [7, 30, 90].map(function (d) {
+      return '<button class="chip' + (d === visitsRange ? " active" : "") + '" data-range="' + d + '">' + d + ' days</button>';
+    }).join("");
+    var empty = visits.length ? "" :
+      '<div class="card"><p class="muted">No visits recorded in this range yet. Visits appear here once people browse the site and accept cookies.</p></div>';
+
+    return head +
+      '<div class="toolbar">' + ranges + '<button class="btn btn-sm" id="an-refresh" style="margin-left:auto">Refresh</button></div>' +
+      '<div class="stats">' +
+        stat("accent", s.total, "Total visits") + stat("", s.unique, "Unique visitors") +
+        stat("", s.newv, "New visitors") + stat("", s.returning, "Returning visits") +
+      '</div>' + empty +
+      chartCard("Visits over time", "ch-time") +
+      '<div class="row">' + chartCard("Devices", "ch-device") + chartCard("Browsers", "ch-browser") + '</div>' +
+      chartCard("Top pages", "ch-pages") +
+      chartCard("Top referrers", "ch-ref") +
+      '<div class="card"><h2>Bookings by status</h2>' + bars(countBy(leads, function (l) { return l.status; }, STATUSES)) + '</div>';
+  }
+  function chartCard(title, id) {
+    return '<div class="card" style="min-width:280px"><h2>' + esc(title) + '</h2>' +
+      '<div style="position:relative;height:260px"><canvas id="' + id + '"></canvas></div></div>';
+  }
+
+  // ---- visitor data helpers ------------------------------------------------
+  function visitorStats() {
+    var uniq = {}; var newv = 0;
+    visits.forEach(function (v) { uniq[v.visitor_id] = 1; if (v.is_new) newv++; });
+    var total = visits.length;
+    return { total: total, unique: Object.keys(uniq).length, newv: newv, returning: total - newv };
+  }
+  function visitsByDay(days) {
+    var out = [], map = {};
+    visits.forEach(function (v) {
+      var d = isoDay(new Date(v.created_at));
+      (map[d] = map[d] || { v: 0, u: {} });
+      map[d].v++; map[d].u[v.visitor_id] = 1;
+    });
+    for (var i = days - 1; i >= 0; i--) {
+      var day = isoDay(new Date(Date.now() - i * 864e5));
+      var m = map[day];
+      out.push({ label: day.slice(5), visits: m ? m.v : 0, unique: m ? Object.keys(m.u).length : 0 });
+    }
+    return out;
+  }
+
+  // ---- Chart.js rendering --------------------------------------------------
+  function haveCharts() { return typeof window.Chart !== "undefined"; }
+  function destroyCharts() { charts.forEach(function (c) { try { c.destroy(); } catch (e) {} }); charts = []; }
+  function mkChart(id, cfgObj) {
+    var el = $(id); if (!el || !haveCharts()) return;
+    charts.push(new Chart(el.getContext("2d"), cfgObj));
+  }
+  var PALETTE = ["#E8A33D", "#7FB77E", "#6C9BD1", "#C77DFF", "#E8705A", "#9AA0AA", "#4ECDC4", "#F4D35E"];
+  function chartsTheme() {
+    if (haveCharts()) { Chart.defaults.color = "#9AA0AA"; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.borderColor = "rgba(255,255,255,.06)"; }
+  }
+  function drawAnalyticsCharts() {
+    if (!haveCharts()) return; // CDN blocked — stat tiles + bars still show
+    chartsTheme();
+    var d = visitsByDay(visitsRange);
+    mkChart("ch-time", {
+      type: "line",
+      data: {
+        labels: d.map(function (x) { return x.label; }),
+        datasets: [
+          { label: "Visits", data: d.map(function (x) { return x.visits; }), borderColor: "#E8A33D", backgroundColor: "rgba(232,163,61,.15)", fill: true, tension: .3 },
+          { label: "Unique", data: d.map(function (x) { return x.unique; }), borderColor: "#7FB77E", backgroundColor: "transparent", tension: .3 }
+        ]
+      },
+      options: chartOpts(true)
+    });
+    doughnut("ch-device", countBy(visits, function (v) { return v.device || "Unknown"; }));
+    doughnut("ch-browser", countBy(visits, function (v) { return v.browser || "Unknown"; }));
+    barChart("ch-pages", countBy(visits, function (v) { return v.path || "/"; }).slice(0, 8));
+    barChart("ch-ref", countBy(visits, function (v) { return v.referrer || "direct"; }).slice(0, 8));
+  }
+  function chartOpts(legend) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: !!legend } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    };
+  }
+  function doughnut(id, data) {
+    mkChart(id, {
+      type: "doughnut",
+      data: { labels: data.map(function (x) { return x.label; }), datasets: [{ data: data.map(function (x) { return x.n; }), backgroundColor: PALETTE, borderColor: "#16181D", borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+  }
+  function barChart(id, data) {
+    mkChart(id, {
+      type: "bar",
+      data: { labels: data.map(function (x) { return x.label; }), datasets: [{ label: "Visits", data: data.map(function (x) { return x.n; }), backgroundColor: "#E8A33D" }] },
+      options: Object.assign(chartOpts(false), { indexAxis: "y" })
+    });
+  }
+
+  // ===========================================================================
+  // Reports (daily summary + CSV / PDF export)
+  // ===========================================================================
+  function view_reports() {
+    var head = '<h1 class="page">Reports</h1><p class="page-sub">Daily summary of visitor activity. Pick a day, then export.</p>';
+    if (visitsError) {
+      return head + '<div class="card"><h2>One-time setup needed</h2><p class="muted">Run <code>supabase/analytics-schema.sql</code> in Supabase, then reload.</p></div>';
+    }
+    return head +
+      '<div class="toolbar"><label style="margin:0;align-self:center">Day</label>' +
+        '<input type="date" id="rep-date" value="' + esc(reportDate) + '" max="' + esc(isoDay(new Date())) + '" style="width:auto">' +
+        '<button class="btn btn-sm" id="rep-csv">Export CSV</button>' +
+        '<button class="btn btn-sm" id="rep-pdf">Export PDF</button></div>' +
+      '<div id="report-out"></div>';
+  }
+
+  function reportFor(day) {
+    var dv = visits.filter(function (v) { return isoDay(new Date(v.created_at)) === day; });
+    var uniq = {}; dv.forEach(function (v) { uniq[v.visitor_id] = 1; });
+    var newv = dv.filter(function (v) { return v.is_new; }).length;
+    var hours = []; for (var i = 0; i < 24; i++) hours.push(0);
+    dv.forEach(function (v) { hours[new Date(v.created_at).getHours()]++; });
+    var peakH = 0; for (var h = 0; h < 24; h++) if (hours[h] > hours[peakH]) peakH = h;
+    var busiest = hours.map(function (n, i) { return { label: pad(i) + ":00", n: n }; })
+      .filter(function (x) { return x.n > 0; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 6);
+    var pages = countBy(dv, function (v) { return v.path || "/"; }).slice(0, 10);
+    var bookings = leads.filter(function (l) { return isoDay(new Date(l.created_at)) === day; }).length;
+    return {
+      day: day, total: dv.length, unique: Object.keys(uniq).length, newv: newv,
+      returning: dv.length - newv, bookings: bookings,
+      peak: dv.length ? (pad(peakH) + ":00") : "—", pages: pages, busiest: busiest
+    };
+  }
+
+  function renderReport() {
+    var out = $("report-out"); if (!out) return;
+    var r = reportFor($("rep-date").value || reportDate);
+    reportDate = r.day;
+    var pages = r.pages.length ? bars(r.pages) : '<p class="muted">No page views.</p>';
+    var busy = r.busiest.length ? bars(r.busiest) : '<p class="muted">No activity.</p>';
+    out.innerHTML =
+      '<div class="stats">' +
+        stat("accent", r.total, "Visits") + stat("", r.unique, "Unique visitors") +
+        stat("", r.newv, "New visitors") + stat("", r.bookings, "Bookings") +
+      '</div>' +
+      '<div class="card"><h2>Summary — ' + esc(r.day) + '</h2>' +
+        '<p class="muted">' + r.total + ' visits from ' + r.unique + ' unique visitors (' + r.newv +
+        ' new, ' + r.returning + ' returning). Peak hour: <b>' + esc(r.peak) + '</b>. Bookings: <b>' + r.bookings + '</b>.</p></div>' +
+      '<div class="row"><div class="card"><h2>Top pages</h2>' + pages + '</div>' +
+      '<div class="card"><h2>Busiest hours</h2>' + busy + '</div></div>';
+  }
+
+  function reportRows(r) {
+    var rows = [
+      ["CreativeConnect — daily report", r.day],
+      ["Total visits", r.total], ["Unique visitors", r.unique],
+      ["New visitors", r.newv], ["Returning visits", r.returning],
+      ["Bookings", r.bookings], ["Peak hour", r.peak],
+      [], ["Top pages", "Visits"]
+    ];
+    r.pages.forEach(function (p) { rows.push([p.label, p.n]); });
+    rows.push([]); rows.push(["Busiest hours", "Visits"]);
+    r.busiest.forEach(function (h) { rows.push([h.label, h.n]); });
+    return rows;
+  }
+  function exportCSV() {
+    var r = reportFor($("rep-date").value || reportDate);
+    var csv = reportRows(r).map(function (row) {
+      return row.map(function (c) { return '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\r\n");
+    download("creativeconnect-report-" + r.day + ".csv", csv, "text/csv");
+  }
+  function exportPDF() {
+    var r = reportFor($("rep-date").value || reportDate);
+    var JsPDF = window.jspdf && window.jspdf.jsPDF;
+    if (!JsPDF) { window.print(); return; } // graceful fallback
+    var doc = new JsPDF({ unit: "pt", format: "a4" });
+    var y = 56;
+    doc.setFontSize(18); doc.text("CreativeConnect — Daily Report", 40, y); y += 22;
+    doc.setFontSize(11); doc.setTextColor(120); doc.text(r.day, 40, y); doc.setTextColor(0); y += 26;
+    function line(k, v) { doc.setFontSize(12); doc.text(String(k), 40, y); doc.text(String(v), 320, y); y += 18; }
+    line("Total visits", r.total); line("Unique visitors", r.unique);
+    line("New visitors", r.newv); line("Returning visits", r.returning);
+    line("Bookings", r.bookings); line("Peak hour", r.peak);
+    y += 12; doc.setFontSize(13); doc.text("Top pages", 40, y); y += 18;
+    r.pages.forEach(function (p) { line(p.label, p.n); });
+    y += 12; doc.setFontSize(13); doc.text("Busiest hours", 40, y); y += 18;
+    r.busiest.forEach(function (h) { line(h.label, h.n); });
+    doc.save("creativeconnect-report-" + r.day + ".pdf");
+  }
+  function download(name, text, mime) {
+    var blob = new Blob([text], { type: mime + ";charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   function countBy(arr, keyFn, order) {
     var m = {}; arr.forEach(function (x) { var k = keyFn(x) || "—"; m[k] = (m[k] || 0) + 1; });
@@ -361,18 +571,21 @@
     return '<div class="save-bar"><button class="btn btn-primary" id="' + id + '">Save changes</button><span class="save-note" id="' + id + '-note"></span></div>';
   }
   function slug(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
 
   // ===========================================================================
   // Router + wiring
   // ===========================================================================
   var VIEWS = {
     dashboard: view_dashboard, leads: view_leads, analytics: view_analytics,
-    home: view_home, packages: view_packages, portfolio: view_portfolio,
-    settings: view_settings, account: view_account
+    reports: view_reports, home: view_home, packages: view_packages,
+    portfolio: view_portfolio, settings: view_settings, account: view_account
   };
 
   function setView(name) {
     if (!VIEWS[name]) name = "dashboard";
+    destroyCharts(); // free any Chart.js instances before replacing the DOM
     Array.prototype.forEach.call(document.querySelectorAll(".sidebar a"), function (a) {
       a.classList.toggle("active", a.getAttribute("data-view") === name);
     });
@@ -384,6 +597,8 @@
 
   function wireView(name) {
     if (name === "leads") wireLeads();
+    else if (name === "analytics") wireAnalytics();
+    else if (name === "reports") wireReports();
     else if (name === "dashboard") {
       var go = $("panel").querySelector("[data-go]");
       if (go) go.addEventListener("click", function (e) { e.preventDefault(); setView("leads"); });
@@ -419,6 +634,25 @@
         }).catch(function (e) { toast("Delete failed: " + e.message, "err"); });
       });
     });
+  }
+
+  function wireAnalytics() {
+    drawAnalyticsCharts();
+    Array.prototype.forEach.call($("panel").querySelectorAll("[data-range]"), function (c) {
+      c.addEventListener("click", function () {
+        visitsRange = +c.getAttribute("data-range");
+        fetchVisits().then(function () { setView("analytics"); });
+      });
+    });
+    var rf = $("an-refresh");
+    if (rf) rf.addEventListener("click", function () { rf.disabled = true; fetchVisits().then(function () { setView("analytics"); }); });
+  }
+
+  function wireReports() {
+    renderReport();
+    var d = $("rep-date"); if (d) d.addEventListener("change", renderReport);
+    var csv = $("rep-csv"); if (csv) csv.addEventListener("click", exportCSV);
+    var pdf = $("rep-pdf"); if (pdf) pdf.addEventListener("click", exportPDF);
   }
 
   function onSave(id, collectFn) {
@@ -463,6 +697,7 @@
     wireItemActions("portfolio", collect_portfolio);
   }
   function wireItemActions(key, collectFn) {
+    if (!content) return; // content not set up yet — view shows the setup notice
     var arr = content[key] || [];
     function rerun() { setView(key); }
     Array.prototype.forEach.call($("panel").querySelectorAll("[data-up]"), function (b) {
@@ -504,8 +739,8 @@
     $("login-view").classList.add("hidden");
     $("app-view").classList.remove("hidden");
     var s = getSession(); if (s && $("who")) $("who").textContent = s.email;
-    // Load leads + content, then render the starting view.
-    Promise.all([fetchLeads().catch(function () {}), fetchContent()]).then(function () {
+    // Load leads + content + visits, then render the starting view.
+    Promise.all([fetchLeads().catch(function () {}), fetchContent(), fetchVisits()]).then(function () {
       var start = (location.hash || "#dashboard").slice(1);
       setView(VIEWS[start] ? start : "dashboard");
     });

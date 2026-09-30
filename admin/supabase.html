@@ -139,6 +139,7 @@
         <a href="#dashboard" data-view="dashboard" class="active">Dashboard</a>
         <a href="#leads" data-view="leads">Leads <span class="badge" id="nav-leads" hidden>0</span></a>
         <a href="#analytics" data-view="analytics">Analytics</a>
+        <a href="#reports" data-view="reports">Reports</a>
         <a href="#home" data-view="home">Home content</a>
         <a href="#packages" data-view="packages">Packages</a>
         <a href="#portfolio" data-view="portfolio">Portfolio</a>
@@ -151,6 +152,9 @@
 
   <div id="toast"></div>
 
+  <!-- Charts + PDF export (loaded from CDN; admin degrades gracefully if blocked) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="../assets/js/config.js"></script>
   <script src="../assets/js/supabase-admin.js"></script>
 </body>
