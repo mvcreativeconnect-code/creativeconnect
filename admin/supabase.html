@@ -39,7 +39,7 @@
     .form-error{color:var(--err);min-height:1.2em;margin:.3rem 0;font-size:.9rem}
     .hint{color:var(--muted);font-weight:400;font-size:.82rem}
     /* app shell */
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 1.2rem;
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:56px;padding:.7rem 1.2rem;
       background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
     .brand{font-family:Georgia,serif;font-weight:700}.brand b{color:var(--accent)}
     .topbar-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
@@ -47,7 +47,8 @@
     .layout{display:grid;grid-template-columns:1fr;gap:0}
     @media(min-width:860px){.layout{grid-template-columns:210px 1fr}}
     .sidebar{background:var(--surface);border-bottom:1px solid var(--line);padding:.6rem;display:flex;flex-wrap:wrap;gap:.3rem}
-    @media(min-width:860px){.sidebar{border-bottom:0;border-right:1px solid var(--line);min-height:calc(100vh - 56px);flex-direction:column;flex-wrap:nowrap}}
+    @media(min-width:860px){.sidebar{border-bottom:0;border-right:1px solid var(--line);flex-direction:column;flex-wrap:nowrap;
+      position:sticky;top:56px;align-self:start;height:calc(100vh - 56px);overflow-y:auto}}
     .sidebar a{color:var(--text);text-decoration:none;padding:.55rem .7rem;border-radius:9px;font-weight:500;font-size:.92rem;display:flex;justify-content:space-between;align-items:center;gap:.4rem}
     .sidebar a:hover{background:var(--surface-2)}
     .sidebar a.active{background:var(--accent);color:var(--accent-ink)}
